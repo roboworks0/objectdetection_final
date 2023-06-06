@@ -4,6 +4,10 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <chrono>
+
+using namespace std;
+using namespace std::chrono;
 
 #define PORT 8000  // Port number to listen on
 
@@ -84,6 +88,7 @@ int main() {
     int message_size;
 
     std::cout << "test..." << "\n";
+    int counter = 0;
 
     while (true) {
         // Receive the frame size
@@ -99,6 +104,7 @@ int main() {
         // Resize the buffer to fit the received frame
         buffer.resize(message_size);
 
+        auto start = high_resolution_clock::now();
         ssize_t bytes_read;
         ssize_t total_bytes_read = 0;
         while (total_bytes_read < message_size)
@@ -120,23 +126,18 @@ int main() {
 
             total_bytes_read += bytes_read;
         }
-        
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(stop - start);
+        cout << "Time taken by function: "
+            << duration.count() * 0.001 << " miliseconds" << endl;
+
+
         std::cout << "bytes_read : " << bytes_read << "\n";
         for(int i=0; i<10; i++){
             std::cout << "byte number " << i << " " << int(buffer[i]) << "\n";
         }
 
-        // ssize_t bytes_read = read(new_socket, buffer.data(), message_size);
-        // if(bytes_read == 0){
-        //     perror("Client disconnected");
-        //     break;
-        // }else if(bytes_read < 0){
-        //     // Error reading the byte data
-        //     std::cerr << "Failed to read the byte data." << std::endl;
-        //     break;
-        // }
-        // std::cout << "bytes_read : " << bytes_read << "\n";
-        // std::cout << "first_byte : " << buffer[0] << "\n";
+        start = high_resolution_clock::now();
 
         // Deserialize the frame
         frame = cv::imdecode(buffer, cv::IMREAD_COLOR);
@@ -193,10 +194,21 @@ int main() {
             cv::putText(frame, text, cv::Point(box.x, box.y - 10), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 2);
         }
 
+        stop = high_resolution_clock::now();
+        duration = duration_cast<microseconds>(stop - start);
+        cout << "Time taken by function: "
+            << duration.count() * 0.001 << " miliseconds" << endl;
+
         std::cout << "isempty : " << frame.empty() << "\n";
+        std::cout << "fps : " << 1/(duration.count()*0.000001) << std::endl;
+
+        cv::putText(frame, "FPS " + std::to_string(1/(duration.count()*0.000001)), cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255));
 
         // Display the received frame
         cv::imshow("Received Frame", frame);
+
+
+        std::cout << "--------------------- " << counter++ << std::endl;
 
         // Exit if 'q' is pressed
         if (cv::waitKey(1) == 'q') {
