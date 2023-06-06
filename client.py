@@ -45,7 +45,7 @@ while True:
     # Send the frame data to the server
     sock.sendall(data)
 
-    cv2.imshow('Sent Frame', frame)
+    # cv2.imshow('Sent Frame', frame)
 
     # Break the loop if the 'q' key is pressed
     if cv2.waitKey(1) & 0xFF == ord('q'):

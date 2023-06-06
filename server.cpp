@@ -1,12 +1,52 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
+#include <fstream>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
 #define PORT 8000  // Port number to listen on
 
+// Function to apply non-maximum suppression
+void applyNMS(std::vector<cv::Rect>& boxes, std::vector<float>& confidences, float nmsThreshold)
+{
+    std::vector<int> indices;
+    cv::dnn::NMSBoxes(boxes, confidences, 0.0, nmsThreshold, indices);
+
+    std::vector<cv::Rect> selectedBoxes;
+    std::vector<float> selectedConfidences;
+
+    for (int idx : indices)
+    {
+        selectedBoxes.push_back(boxes[idx]);
+        selectedConfidences.push_back(confidences[idx]);
+    }
+
+    boxes = selectedBoxes;
+    confidences = selectedConfidences;
+}
+
+
 int main() {
+    // Load the pre-trained YOLO model
+    cv::dnn::Net net = cv::dnn::readNetFromDarknet("yolov3.cfg", "yolov3.weights");
+    // Specify the target backend and compute backend for the network
+    net.setPreferableBackend(cv::dnn::DNN_BACKEND_DEFAULT);
+    net.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
+    
+    // Load class labels
+    std::vector<std::string> classLabels;
+    std::string labelFile = "coco.names";
+    std::ifstream ifs(labelFile.c_str());
+    if (!ifs.is_open()) {
+        std::cerr << "Failed to open label file: " << labelFile << std::endl;
+        return -1;
+    }
+    std::string line;
+    while (std::getline(ifs, line)) {
+        classLabels.push_back(line);
+    }
+
     int server_socket, new_socket, valread;
     struct sockaddr_in address{};
     int addrlen = sizeof(address);
@@ -100,6 +140,58 @@ int main() {
 
         // Deserialize the frame
         frame = cv::imdecode(buffer, cv::IMREAD_COLOR);
+
+        // Preprocess frame and create blob
+        cv::Mat blob = cv::dnn::blobFromImage(frame, 1 / 255.0, cv::Size(416, 416), cv::Scalar(0, 0, 0), true, false);
+
+        // Forward pass through the network
+        net.setInput(blob);
+        std::vector<cv::Mat> outs;
+        net.forward(outs, net.getUnconnectedOutLayersNames());
+
+        // Parse output and draw bounding boxes
+        float confidenceThreshold = 0.5;  // Confidence threshold for filtering detections
+        float nmsThreshold = 0.4;  // Non-maximum suppression threshold
+        std::vector<int> classIds;
+        std::vector<float> confidences;
+        std::vector<cv::Rect> boxes;
+
+        for (const auto& out : outs) {
+            // Get confidence, class ID, and bounding box
+            for (int i = 0; i < out.rows; ++i) {
+                cv::Mat scores = out.row(i).colRange(5, out.cols);
+                cv::Point classIdPoint;
+                double confidence;
+                cv::minMaxLoc(scores, nullptr, &confidence, nullptr, &classIdPoint);
+                if (confidence > confidenceThreshold) {
+                    int centerX = static_cast<int>(out.at<float>(i, 0) * frame.cols);
+                    int centerY = static_cast<int>(out.at<float>(i, 1) * frame.rows);
+                    int width = static_cast<int>(out.at<float>(i, 2) * frame.cols);
+                    int height = static_cast<int>(out.at<float>(i, 3) * frame.rows);
+                    int left = centerX - width / 2;
+                    int top = centerY - height / 2;
+
+                    classIds.push_back(classIdPoint.x);
+                    confidences.push_back(static_cast<float>(confidence));
+                    boxes.emplace_back(left, top, width, height);
+                }
+            }
+        }
+
+        // Perform non-maximum suppression to remove overlapping bounding boxes
+        std::vector<int> indices;
+        cv::dnn::NMSBoxes(boxes, confidences, confidenceThreshold, nmsThreshold, indices);
+
+        // Draw the filtered bounding boxes
+        for (int i : indices) {
+            const cv::Rect& box = boxes[i];
+            cv::rectangle(frame, box, cv::Scalar(0, 255, 0), 2);
+
+            std::string label = classLabels[classIds[i]];
+            std::string confidenceLabel = cv::format("%.2f", confidences[i]);
+            std::string text = label + ": " + confidenceLabel;
+            cv::putText(frame, text, cv::Point(box.x, box.y - 10), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 2);
+        }
 
         std::cout << "isempty : " << frame.empty() << "\n";
 
