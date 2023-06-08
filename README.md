@@ -1,13 +1,18 @@
 # objectdetection_final
 
 ## Setup
-C++'a Opencv'yi kurmak için şu kaynakları takip edebilirsiniz
+#### C++'a Opencv'yi kurmak için şu kaynakları takip edebilirsiniz
 
 https://www.youtube.com/watch?v=uCKX_FCg9Rk
 
 https://medium.com/analytics-vidhya/how-to-install-opencv-for-visual-studio-code-using-ubuntu-os-9398b2f32d53
 
-Qt kurulumu için
+#### Yolo weights ve cfg dosyalalarını indirmek için
+https://pjreddie.com/darknet/yolo/
+
+[coco.names](https://github.com/pjreddie/darknet/blob/master/data/coco.names)
+
+#### Qt kurulumu için
 
 https://www.youtube.com/watch?v=2kSFwPXauMg&t=412s
 
@@ -15,7 +20,7 @@ Opencv versiyonu: 4.0
 Qt versiyonu: 5.12.12
 
 
-Çalıştırmak için
+#### Çalıştırmak için
 
 ```
 make server
