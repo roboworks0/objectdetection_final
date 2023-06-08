@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import socket
 import time
+from random import random
 
 # Open the webcam
 cap = cv2.VideoCapture(0)
@@ -13,6 +14,9 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_address = ('localhost', 8000)
 sock.connect(server_address)
 
+def generateRandomSensorData():
+    return (int(random()*40), int(random()*40), int(random()*40))
+
 while True:
     # Capture a frame from the webcam
     ret, frame = cap.read()
@@ -22,6 +26,11 @@ while True:
 
     # Convert the encoded frame to a byte array
     data = np.array(buffer).tobytes()
+
+    sensor_data = generateRandomSensorData()
+    packed_data = b''.join([data.to_bytes(4, 'little') for data in sensor_data])
+
+    sock.sendall(packed_data)
 
     # print(type(data))
 

@@ -1,120 +1,73 @@
-#include <opencv2/opencv.hpp>
-#include <iostream>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
 #include <QApplication>
 #include <QMainWindow>
 #include <QLabel>
-#include <QImage>
+#include <QTimer>
 #include <QVBoxLayout>
-#include <QTcpServer>
-#include <QTcpSocket>
-#include <QDataStream>
+#include <QPushButton>
+#include <opencv2/opencv.hpp>
 
-#define PORT 8000  // Port number to listen on
-
-class MainWindow : public QMainWindow
+// Function to receive and update the frame
+void updateFrame(cv::Mat frame, QLabel* frameLabel)
 {
-    Q_OBJECT
+    // Convert the frame to QImage
+    QImage image(frame.data, frame.cols, frame.rows, QImage::Format_RGB888);
+    image = image.rgbSwapped();
 
-public:
-    MainWindow(QWidget *parent = nullptr)
-        : QMainWindow(parent)
-    {
-        // Create QLabel for video display
-        videoLabel = new QLabel(this);
-        videoLabel->setScaledContents(true);
-
-        // Create main widget and set the layout
-        QWidget *centralWidget = new QWidget(this);
-        QVBoxLayout *layout = new QVBoxLayout(centralWidget);
-        layout->addWidget(videoLabel);
-        setCentralWidget(centralWidget);
-
-        // Create server socket
-        server = new QTcpServer(this);
-        connect(server, &QTcpServer::newConnection, this, &MainWindow::acceptConnection);
-
-        if (!server->listen(QHostAddress::Any, PORT))
-        {
-            qDebug() << "Server could not start!";
-            return;
-        }
-
-        qDebug() << "Server started!";
-
-        // Accept incoming connections
-        frameSize = 0;
-        totalBytesRead = 0;
-
-        startNextFrame();
-    }
-
-private slots:
-    void acceptConnection()
-    {
-        clientSocket = server->nextPendingConnection();
-        connect(clientSocket, &QTcpSocket::readyRead, this, &MainWindow::receiveFrameSize);
-        qDebug() << "New client connected!";
-    }
-
-    void receiveFrameSize()
-    {
-        QDataStream in(clientSocket);
-        if (frameSize == 0 && clientSocket->bytesAvailable() >= sizeof(frameSize))
-        {
-            in >> frameSize;
-            frameData.resize(frameSize);
-            totalBytesRead = 0;
-        }
-
-        receiveFrameData();
-    }
-
-    void receiveFrameData()
-    {
-        qint64 bytesRead = clientSocket->read(frameData.data() + totalBytesRead, frameSize - totalBytesRead);
-        totalBytesRead += bytesRead;
-
-        if (totalBytesRead == frameSize)
-        {
-            displayFrame();
-            startNextFrame();
-        }
-    }
-
-    void displayFrame()
-    {
-        cv::Mat frame = cv::imdecode(frameData, cv::IMREAD_COLOR);
-        if (!frame.empty())
-        {
-            QImage image(frame.data, frame.cols, frame.rows, frame.step, QImage::Format_BGR888);
-            videoLabel->setPixmap(QPixmap::fromImage(image));
-        }
-    }
-
-    void startNextFrame()
-    {
-        frameSize = 0;
-        totalBytesRead = 0;
-    }
-
-private:
-    QLabel *videoLabel;
-    QTcpServer *server;
-    QTcpSocket *clientSocket;
-    QByteArray frameData;
-    qint32 frameSize;
-    qint64 totalBytesRead;
-};
+    // Set the QImage as the pixmap of the frame label widget
+    frameLabel->setPixmap(QPixmap::fromImage(image));
+    frameLabel->setScaledContents(true);
+}
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    MainWindow w;
-    w.show();
+
+    // Create the main window
+    QMainWindow window;
+
+    // Create a central widget
+    QWidget* centralWidget = new QWidget(&window);
+    window.setCentralWidget(centralWidget);
+
+    // Create a layout for the central widget
+    QVBoxLayout* layout = new QVBoxLayout(centralWidget);
+
+    // Create a label widget to display the frame
+    QLabel* frameLabel = new QLabel(centralWidget);
+    layout->addWidget(frameLabel);
+
+    // Create random buttons
+    for (int i = 0; i < 5; i++) {
+        QPushButton* button = new QPushButton(QString("Button %1").arg(i + 1), centralWidget);
+        layout->addWidget(button);
+    }
+
+    // Set the layout to the central widget
+    centralWidget->setLayout(layout);
+
+    // Initialize the server communication and receive the frame
+    // Replace this part with your server communication code from server.cpp
+
+    cv::VideoCapture cap(0);
+    if (!cap.isOpened()) {
+        qDebug() << "Failed to open the camera.";
+        return -1;
+    }
+
+    cv::Mat frame;
+    QTimer timer;
+    QObject::connect(&timer, &QTimer::timeout, [&]() {
+        cap >> frame;
+        if (frame.empty())
+            return;
+
+        // Update the frame in the GUI
+        updateFrame(frame, frameLabel);
+    });
+    timer.start(33); // Update every 33 milliseconds (approximately 30 frames per second)
+
+    // Show the main window
+    window.show();
+
     return a.exec();
 }
-
-#include "main.moc"

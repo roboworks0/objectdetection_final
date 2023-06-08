@@ -91,6 +91,19 @@ int main() {
     int counter = 0;
 
     while (true) {
+        // Receive the sensor data in tuple
+        char sensor_buffer[12];
+        if(read(new_socket, sensor_buffer, sizeof(sensor_buffer)) == 0 ) {
+            perror("client disconnected");
+            break;
+        }
+        // Unpack the received bytes into a tuple
+        int value1 = *reinterpret_cast<int*>(sensor_buffer);
+        int value2 = *reinterpret_cast<int*>(sensor_buffer + 4);
+        int value3 = *reinterpret_cast<int*>(sensor_buffer + 8);
+
+        std::cout << "value1 : " << value1 << ", value2 : " << value2 << ", value3 : " << value3 << std::endl;
+
         // Receive the frame size
         std::cout << "debug1\n";
         if (read(new_socket, &message_size, sizeof(message_size)) == 0) {
@@ -142,67 +155,67 @@ int main() {
         // Deserialize the frame
         frame = cv::imdecode(buffer, cv::IMREAD_COLOR);
 
-        // Preprocess frame and create blob
-        cv::Mat blob = cv::dnn::blobFromImage(frame, 1 / 255.0, cv::Size(416, 416), cv::Scalar(0, 0, 0), true, false);
+        // // Preprocess frame and create blob
+        // cv::Mat blob = cv::dnn::blobFromImage(frame, 1 / 255.0, cv::Size(416, 416), cv::Scalar(0, 0, 0), true, false);
 
-        // Forward pass through the network
-        net.setInput(blob);
-        std::vector<cv::Mat> outs;
-        net.forward(outs, net.getUnconnectedOutLayersNames());
+        // // Forward pass through the network
+        // net.setInput(blob);
+        // std::vector<cv::Mat> outs;
+        // net.forward(outs, net.getUnconnectedOutLayersNames());
 
-        // Parse output and draw bounding boxes
-        float confidenceThreshold = 0.5;  // Confidence threshold for filtering detections
-        float nmsThreshold = 0.4;  // Non-maximum suppression threshold
-        std::vector<int> classIds;
-        std::vector<float> confidences;
-        std::vector<cv::Rect> boxes;
+        // // Parse output and draw bounding boxes
+        // float confidenceThreshold = 0.5;  // Confidence threshold for filtering detections
+        // float nmsThreshold = 0.4;  // Non-maximum suppression threshold
+        // std::vector<int> classIds;
+        // std::vector<float> confidences;
+        // std::vector<cv::Rect> boxes;
 
-        for (const auto& out : outs) {
-            // Get confidence, class ID, and bounding box
-            for (int i = 0; i < out.rows; ++i) {
-                cv::Mat scores = out.row(i).colRange(5, out.cols);
-                cv::Point classIdPoint;
-                double confidence;
-                cv::minMaxLoc(scores, nullptr, &confidence, nullptr, &classIdPoint);
-                if (confidence > confidenceThreshold) {
-                    int centerX = static_cast<int>(out.at<float>(i, 0) * frame.cols);
-                    int centerY = static_cast<int>(out.at<float>(i, 1) * frame.rows);
-                    int width = static_cast<int>(out.at<float>(i, 2) * frame.cols);
-                    int height = static_cast<int>(out.at<float>(i, 3) * frame.rows);
-                    int left = centerX - width / 2;
-                    int top = centerY - height / 2;
+        // for (const auto& out : outs) {
+        //     // Get confidence, class ID, and bounding box
+        //     for (int i = 0; i < out.rows; ++i) {
+        //         cv::Mat scores = out.row(i).colRange(5, out.cols);
+        //         cv::Point classIdPoint;
+        //         double confidence;
+        //         cv::minMaxLoc(scores, nullptr, &confidence, nullptr, &classIdPoint);
+        //         if (confidence > confidenceThreshold) {
+        //             int centerX = static_cast<int>(out.at<float>(i, 0) * frame.cols);
+        //             int centerY = static_cast<int>(out.at<float>(i, 1) * frame.rows);
+        //             int width = static_cast<int>(out.at<float>(i, 2) * frame.cols);
+        //             int height = static_cast<int>(out.at<float>(i, 3) * frame.rows);
+        //             int left = centerX - width / 2;
+        //             int top = centerY - height / 2;
 
-                    classIds.push_back(classIdPoint.x);
-                    confidences.push_back(static_cast<float>(confidence));
-                    boxes.emplace_back(left, top, width, height);
-                }
-            }
-        }
+        //             classIds.push_back(classIdPoint.x);
+        //             confidences.push_back(static_cast<float>(confidence));
+        //             boxes.emplace_back(left, top, width, height);
+        //         }
+        //     }
+        // }
 
-        // Perform non-maximum suppression to remove overlapping bounding boxes
-        std::vector<int> indices;
-        cv::dnn::NMSBoxes(boxes, confidences, confidenceThreshold, nmsThreshold, indices);
+        // // Perform non-maximum suppression to remove overlapping bounding boxes
+        // std::vector<int> indices;
+        // cv::dnn::NMSBoxes(boxes, confidences, confidenceThreshold, nmsThreshold, indices);
 
-        // Draw the filtered bounding boxes
-        for (int i : indices) {
-            const cv::Rect& box = boxes[i];
-            cv::rectangle(frame, box, cv::Scalar(0, 255, 0), 2);
+        // // Draw the filtered bounding boxes
+        // for (int i : indices) {
+        //     const cv::Rect& box = boxes[i];
+        //     cv::rectangle(frame, box, cv::Scalar(0, 255, 0), 2);
 
-            std::string label = classLabels[classIds[i]];
-            std::string confidenceLabel = cv::format("%.2f", confidences[i]);
-            std::string text = label + ": " + confidenceLabel;
-            cv::putText(frame, text, cv::Point(box.x, box.y - 10), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 2);
-        }
+        //     std::string label = classLabels[classIds[i]];
+        //     std::string confidenceLabel = cv::format("%.2f", confidences[i]);
+        //     std::string text = label + ": " + confidenceLabel;
+        //     cv::putText(frame, text, cv::Point(box.x, box.y - 10), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 2);
+        // }
 
-        stop = high_resolution_clock::now();
-        duration = duration_cast<microseconds>(stop - start);
-        cout << "Time taken by function: "
-            << duration.count() * 0.001 << " miliseconds" << endl;
+        // stop = high_resolution_clock::now();
+        // duration = duration_cast<microseconds>(stop - start);
+        // cout << "Time taken by function: "
+        //     << duration.count() * 0.001 << " miliseconds" << endl;
 
-        std::cout << "isempty : " << frame.empty() << "\n";
-        std::cout << "fps : " << 1/(duration.count()*0.000001) << std::endl;
+        // std::cout << "isempty : " << frame.empty() << "\n";
+        // std::cout << "fps : " << 1/(duration.count()*0.000001) << std::endl;
 
-        cv::putText(frame, "FPS " + std::to_string(1/(duration.count()*0.000001)), cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255));
+        // cv::putText(frame, "FPS " + std::to_string(1/(duration.count()*0.000001)), cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255));
 
         // Display the received frame
         cv::imshow("Received Frame", frame);
