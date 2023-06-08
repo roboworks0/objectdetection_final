@@ -1,5 +1,7 @@
 # objectdetection_final
 
+Bu repodaki client.py, [genel mimaridaki](https://github.com/roboworks0/Documents) **Raspberry Client**'ı temsil ediyor
+
 ## Setup
 #### C++'a Opencv'yi kurmak için şu kaynakları takip edebilirsiniz
 
@@ -38,7 +40,5 @@ python client.py
 ## Yapılacaklar
 - [ ] Nvidia bir bilgisayar CUDA kurulacak ve görüntü işlemenin performansı arttırılacak
 - [x] Opencv ile açılan bu frame QT ile yazdığımız masaüstü uygulamasına embed edilecek, [kod](https://github.com/roboworks0/desktop_final/blob/main/README.md)
-
-
-
+- [ ] client.py'ın raspberry'ye yüklenmesi ve gerekli kütüphaneler raspbery üzerinde kurulması
 
