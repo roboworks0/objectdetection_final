@@ -33,9 +33,18 @@ python client.py
 ![image](https://github.com/roboworks0/objectdetection_final/assets/37713845/25a687eb-d37a-4254-bd01-f02e3def412c)
 
 
+
+
 ## Yapılacaklar
 - [ ] Nvidia bir bilgisayar CUDA kurulacak ve görüntü işlemenin performansı arttırılacak
-- [ ] Opencv ile açılan bu frame QT ile yazdığımız masaüstü uygulamasına embed edilecek, [kaynak](https://www.youtube.com/watch?v=r6sPzm0MNRI) [kod](https://github.com/yunus-temurlenk/Send-Opencv-Images-to-Qml-QPainter)
+- [ ] Opencv ile açılan bu frame QT ile yazdığımız masaüstü uygulamasına embed edilecek, [kod](https://github.com/yunus-temurlenk/Send-Opencv-Images-to-Qml-QPainter)
+
+Yukarıdaki uygulamadan ekran görüntüsü
+![image](https://github.com/roboworks0/objectdetection_final/assets/37713845/b4f51766-2c51-4f15-a409-132984c425a2)
+
+Görüntü işlemeyi yukarıdaki uygulamaya bağlamak gerekiyor
+
+
 
 
 
