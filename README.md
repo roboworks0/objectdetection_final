@@ -35,7 +35,7 @@ python client.py
 
 ## Yapılacaklar
 - [ ] Nvidia bir bilgisayar CUDA kurulacak ve görüntü işlemenin performansı arttırılacak
-- [ ] Opencv ile açılan bu frame QT ile yazdığımız masaüstü uygulamasına embed edilecek, [kaynak](https://www.youtube.com/watch?v=r6sPzm0MNRI)
+- [ ] Opencv ile açılan bu frame QT ile yazdığımız masaüstü uygulamasına embed edilecek, [kaynak](https://www.youtube.com/watch?v=r6sPzm0MNRI) [kod](https://github.com/yunus-temurlenk/Send-Opencv-Images-to-Qml-QPainter)
 
 
 
